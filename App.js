@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { API_BASE_URL } from "./config"; // Import API URL
+import { API_BASE_URL } from "./config"; // Import backend API URL
 
 const SOLANA_NETWORK = "https://api.mainnet-beta.solana.com";
 
 const App = () => {
     const [wallet, setWallet] = useState(null);
     const [balance, setBalance] = useState(0);
+    const [isPremium, setIsPremium] = useState(false);
     const [message, setMessage] = useState("");
 
     const connectWallet = async () => {
@@ -15,19 +16,20 @@ const App = () => {
                 const response = await window.solana.connect();
                 const publicKey = response.publicKey.toString();
                 setWallet(publicKey);
-                
+
                 const connection = new Connection(SOLANA_NETWORK);
                 const balance = await connection.getBalance(new PublicKey(publicKey));
                 setBalance(balance / 1e9);
 
-                // Send wallet address to backend
-                const res = await fetch(`${API_BASE_URL}/api/login`, {
+                // Check premium status with backend
+                const res = await fetch(`${API_BASE_URL}/api/check-premium`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ wallet: publicKey }),
                 });
 
                 const data = await res.json();
+                setIsPremium(data.isPremium);
                 setMessage(data.message);
 
             } catch (error) {
@@ -45,6 +47,7 @@ const App = () => {
                 <div>
                     <p>Wallet: {wallet}</p>
                     <p>Balance: {balance} SOL</p>
+                    <p>Status: {isPremium ? "✅ Premium Active" : "❌ Not Premium"}</p>
                     <p>{message}</p>
                 </div>
             ) : (
