@@ -1,0 +1,15 @@
+{
+  "name": "solana-exchange-frontend",
+  "version": "1.0.0",
+  "description": "A decentralized exchange frontend for Solana.",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.73.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-scripts": "latest"
+  }
+}
