@@ -1,69 +1,72 @@
 import React, { useState, useEffect } from "react";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { API_BASE_URL } from "./config"; // Backend URL
-
-const SOLANA_NETWORK = "https://api.mainnet-beta.solana.com";
+import { API_BASE_URL } from "./config"; // Backend API URL
 
 const App = () => {
     const [wallet, setWallet] = useState(null);
     const [balance, setBalance] = useState(0);
     const [isPremium, setIsPremium] = useState(false);
     const [message, setMessage] = useState("");
-    const [transactions, setTransactions] = useState([]);
+
+    // Create Wallet (Off-Chain)
+    const createWallet = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/create-wallet`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            if (data.wallet) {
+                setWallet(data.wallet);
+                setMessage("Wallet created! Save your private key securely.");
+            } else {
+                setMessage("Failed to create wallet.");
+            }
+        } catch (error) {
+            console.error("Error creating wallet:", error);
+        }
+    };
+
+    // Check Wallet Balance & Premium Status
+    const checkWalletStatus = async () => {
+        if (!wallet) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/check-wallet`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wallet })
+            });
+
+            const data = await res.json();
+            setBalance(data.balance);
+            setIsPremium(data.isPremium);
+            setMessage(data.message);
+        } catch (error) {
+            console.error("Error checking wallet:", error);
+        }
+    };
 
     useEffect(() => {
         if (wallet) {
-            fetchTransactionHistory(wallet);
+            checkWalletStatus();
         }
     }, [wallet]);
-
-    const connectWallet = async () => {
-        if (window.solana) {
-            try {
-                const response = await window.solana.connect();
-                const publicKey = response.publicKey.toString();
-                setWallet(publicKey);
-
-                const connection = new Connection(SOLANA_NETWORK);
-                const balance = await connection.getBalance(new PublicKey(publicKey));
-                setBalance(balance / 1e9);
-
-                // 🔹 Check premium status from backend
-                const res = await fetch(`${API_BASE_URL}/api/check-premium`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ wallet: publicKey }),
-                });
-
-                const data = await res.json();
-                setIsPremium(data.isPremium);
-                setMessage(data.message);
-                
-                fetchTransactionHistory(publicKey);
-
-            } catch (error) {
-                console.error("Wallet connection failed", error);
-            }
-        } else {
-            alert("Install a Solana wallet like Phantom.");
-        }
-    };
-
-    const fetchTransactionHistory = async (walletAddress) => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/transaction-history?wallet=${walletAddress}`);
-            const data = await res.json();
-            setTransactions(data.transactions);
-        } catch (error) {
-            console.error("Failed to fetch transactions", error);
-        }
-    };
 
     return (
         <div className="container">
             <h1>Solana Exchange</h1>
             {wallet ? (
                 <div>
-                    <p><strong>Wallet:</strong> {wallet}</p>
-                    <p><strong>Balance:</strong> {balance} SOL</p>
-                    <p><strong>Status:</strong> {isPremium ? "✅ Premium Active" : "❌
+                    <p>Wallet: {wallet}</p>
+                    <p>Balance: {balance} SOL</p>
+                    <p>Status: {isPremium ? "✅ Premium Active" : "❌ Not Premium"}</p>
+                    <p>{message}</p>
+                </div>
+            ) : (
+                <button onClick={createWallet}>Create Wallet</button>
+            )}
+        </div>
+    );
+};
+
+export default App;
