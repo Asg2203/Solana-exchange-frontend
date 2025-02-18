@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { API_BASE_URL } from "./config"; // Import backend API URL
+import { API_BASE_URL } from "./config"; // Backend URL
 
 const SOLANA_NETWORK = "https://api.mainnet-beta.solana.com";
 
@@ -9,6 +9,13 @@ const App = () => {
     const [balance, setBalance] = useState(0);
     const [isPremium, setIsPremium] = useState(false);
     const [message, setMessage] = useState("");
+    const [transactions, setTransactions] = useState([]);
+
+    useEffect(() => {
+        if (wallet) {
+            fetchTransactionHistory(wallet);
+        }
+    }, [wallet]);
 
     const connectWallet = async () => {
         if (window.solana) {
@@ -21,7 +28,7 @@ const App = () => {
                 const balance = await connection.getBalance(new PublicKey(publicKey));
                 setBalance(balance / 1e9);
 
-                // Check premium status with backend
+                // 🔹 Check premium status from backend
                 const res = await fetch(`${API_BASE_URL}/api/check-premium`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -31,6 +38,8 @@ const App = () => {
                 const data = await res.json();
                 setIsPremium(data.isPremium);
                 setMessage(data.message);
+                
+                fetchTransactionHistory(publicKey);
 
             } catch (error) {
                 console.error("Wallet connection failed", error);
@@ -40,21 +49,21 @@ const App = () => {
         }
     };
 
+    const fetchTransactionHistory = async (walletAddress) => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/transaction-history?wallet=${walletAddress}`);
+            const data = await res.json();
+            setTransactions(data.transactions);
+        } catch (error) {
+            console.error("Failed to fetch transactions", error);
+        }
+    };
+
     return (
         <div className="container">
             <h1>Solana Exchange</h1>
             {wallet ? (
                 <div>
-                    <p>Wallet: {wallet}</p>
-                    <p>Balance: {balance} SOL</p>
-                    <p>Status: {isPremium ? "✅ Premium Active" : "❌ Not Premium"}</p>
-                    <p>{message}</p>
-                </div>
-            ) : (
-                <button onClick={connectWallet}>Connect Wallet</button>
-            )}
-        </div>
-    );
-};
-
-export default App;
+                    <p><strong>Wallet:</strong> {wallet}</p>
+                    <p><strong>Balance:</strong> {balance} SOL</p>
+                    <p><strong>Status:</strong> {isPremium ? "✅ Premium Active" : "❌
